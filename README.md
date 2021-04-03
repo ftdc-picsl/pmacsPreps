@@ -6,7 +6,7 @@
 The executable scripts are stored in `bin/`, eg
 
 ```
-bin/fmriprep [args]
+bin/fmriprep.sh [args]
 ```
 
 runs a container of the form `containers/fmriprep-version.sif`.

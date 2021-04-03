@@ -4,45 +4,56 @@ containerVersion=20.2.1
 fsDir=/appl/freesurfer-7.1.1
 cleanup=1
 
-if [[ $# -eq 0 ]]; then
-  echo "
-  $0 [options] -i /path/to/bids -o /path/to/outputDir -- [fmriprep args]    
+function usage() {
+  echo "Usage:
+  $0 [-h] [-B src:dest,...,src:dest] [-c 1/0] [-f /path/to/fsSubjectsDir] [-v fmriprep-version ] \\
+    -i /path/to/bids -o /path/to/outputDir -- [fmriprep args]
+"
+}
 
-This script handles various configuration options and bind points needed to run fmriprep on the cluster. 
+function help() {
+    usage
+  echo "This script handles various configuration options and bind points needed to run fmriprep on the cluster.
 
-Requires absolute paths, as these have to be mounted in the container. Participant BIDS data 
+Use absolute paths, as these have to be mounted in the container. Participant BIDS data
 should exist under /path/to/bids.
 
 Using the options below, specify paths on the local file system. These will be bound automatically
 to locations inside the container. If needed, you can add extra mount points with '-B'.
 
-fmriprep args after the '--' should reference paths within the container. For example, if 
-you want to use '--config-file FILE', FILE should be a path inside the container. 
+fmriprep args after the '--' should reference paths within the container. For example, if
+you want to use '--config-file FILE', FILE should be a path inside the container.
 
 Required args:
 
   -i /path/to/bids
     Input BIDS directory on the local file system. Will be bound to /data/input inside the container.
 
-  -o /path/to/OutputDir
+  -o /path/to/outputDir
     Output directory on the local files system. Will be bound to /data/output inside the container.
 
 Options:
 
   -B src:dest[,src:dest,...,src:dest]
-     Use this to add mount points to bind inside the container, that aren't handled by other options. 
-     'src' is an absolute path on the local file system and 'dest' is an absolute path inside the container. 
-     Several bind points are always defined inside the container including \$HOME, \$PWD (where script is 
-     executed from), and /tmp (more on this below). Additionally, BIDS input (-i), output (-o), and FreeSurfer 
-     output dirs (-f) are bound automatically. 
+     Use this to add mount points to bind inside the container, that aren't handled by other options.
+     'src' is an absolute path on the local file system and 'dest' is an absolute path inside the container.
+     Several bind points are always defined inside the container including \$HOME, \$PWD (where script is
+     executed from), and /tmp (more on this below). Additionally, BIDS input (-i), output (-o), and FreeSurfer
+     output dirs (-f) are bound automatically.
 
   -c 1/0
      Cleanup the working dir after running fmriprep (default = $cleanup). This is different from the fmriprep
-     option '--clean-workdir', which deletes the contents of the working directory BEFORE running anything. 
-     
+     option '--clean-workdir', which deletes the contents of the working directory BEFORE running anything.
+
   -f /path/to/fsSubjectsDir
-     Base directory of FreeSurfer recon-all output, on the local file system. Will be mounted inside the 
+     Base directory of FreeSurfer recon-all output, on the local file system. Will be mounted inside the
      container and passed to fmriprep with the '--fs-subjects-dir' option.
+
+  -h
+     Prints this help message.
+
+  -v version
+     fmriprep version (default = $containerVersion). The script will look for containers/fmriprep-[version].sif.
 
 
 *** Hard-coded fmriprep configuration ***
@@ -101,26 +112,32 @@ Available fmriprep args (taken directly from fmriprep):
                 [--stop-on-first-crash] [--notrack]
                 [--debug {compcor,all} [{compcor,all} ...]] [--sloppy]
 
-Requires singularity
-
 "
+}
 
+if [[ $# -eq 0 ]]; then
+  usage
   exit 1
-
 fi
 
-scriptDir=$( dirname $0 )
+scriptPath=$(readlink -f "$0")
+scriptDir=$(dirname "${scriptPath}")
+# Repo base dir under which we find bin/ and containers/
+repoDir=${scriptDir%/bin}
+
 
 fsSubjectsDir=""
 userBindPoints=""
 
-while getopts "B:c:f:i:o:" opt; do
+while getopts "B:c:f:i:o:v:h" opt; do
   case $opt in
     B) userBindPoints=$OPTARG;;
     c) cleanup=$OPTARG;;
     f) fsSubjectsDir=$OPTARG;;
+    h) help; exit 1;;
     i) bidsDir=$OPTARG;;
     o) outputDir=$OPTARG;;
+    v) containerVersion=$OPTARG;;
     \?) echo "Unknown option $OPTARG"; exit 2;;
     :) echo "Option $OPTARG requires an argument"; exit 2;;
   esac
@@ -133,7 +150,7 @@ if [[ -z "${LSB_JOBID}" ]]; then
   exit 1
 fi
 
-sngl=$( which singularity ) || 
+sngl=$( which singularity ) ||
     ( echo "Cannot find singularity executable. Try module load DEV/singularity"; exit 1 )
 
 
@@ -143,7 +160,7 @@ if [[ ! -d "$bidsDir" ]]; then
 fi
 
 if [[ ! -d "${outputDir}" ]]; then
-  mkdir -p $outputDir
+  mkdir -p "$outputDir"
 fi
 
 if [[ ! -d "${outputDir}" ]]; then
@@ -152,7 +169,7 @@ if [[ ! -d "${outputDir}" ]]; then
 fi
 
 # Set a job-specific temp dir
-jobTmpDir=$( mktemp -d -p ${SINGULARITY_TMPDIR} fmriprep.${LSB_JOBID}.XXXXXXXX.tmpdir ) || 
+jobTmpDir=$( mktemp -d -p ${SINGULARITY_TMPDIR} fmriprep.${LSB_JOBID}.XXXXXXXX.tmpdir ) ||
     ( echo "Could not create job temp dir ${jobTmpDir}"; exit 1 )
 
 # Not all software uses TMPDIR
@@ -180,13 +197,13 @@ fi
 
 if [[ -n "$userBindPoints" ]]; then
   singularityArgs="$singularityArgs \
-    -B $userBindPoints"
+  -B $userBindPoints"
 fi
 
 # Script-defined args to fmriprep
 fmriprepScriptArgs="--fs-license-file /freesurfer/license.txt \
   --notrack \
-  --nprocs $LSB_DJOB_NUMPROC \ 
+  --nprocs $LSB_DJOB_NUMPROC \
   --omp-nthreads $LSB_DJOB_NUMPROC \
   --work-dir ${SINGULARITYENV_TMPDIR} \
   --skip_bids_validation \
@@ -200,7 +217,12 @@ $*
 ---
 "
 
-image="${scriptDir}/containers/fmriprep-${containerVersion}.sif"
+image="${repoDir}/containers/fmriprep-${containerVersion}.sif"
+
+if [[ ! -f $image ]]; then
+  echo "Cannot find requested version $containerVersion at path $image"
+  exit 1
+fi
 
 echo "
 --- Script options ---
@@ -210,23 +232,22 @@ Output directory       : $outputDir
 Cleanup temp           : $clean
 User bind points       : $userBindPoints
 FreeSurfer subject dir : $fsSubjectsDir
----  
+---
 "
 
 echo "
---- Container details ---
-"
+--- Container details ---"
 singularity inspect $image
-echo "---"
+echo "---
+"
 
 
 cmd="singularity run \
   $singularityArgs \
   $image \
+  /data/input /data/output participant \
   $fmriprepScriptArgs \
-  $fmriprepUserArgs \
-  /data/input /data/output participant
-"
+  $fmriprepUserArgs"
 
 echo "
 --- fmriprep command ---
