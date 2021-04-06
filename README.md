@@ -46,8 +46,14 @@ normalization) and 'tpl-OASIS30ANTs' (for brain extraction).
 
 ## Container sources
 
-Current containers
+Current containers installed in
 
-fmriprep from [nipreps](https://hub.docker.com/r/nipreps/fmriprep)
-qsiprep from [pennbbl](https://hub.docker.com/r/pennbbl/qsiprep)
+```
+/project/ftdc_pipeline/pmacsPreps/containers
+```
+
+include:
+
+* fmriprep from [nipreps](https://hub.docker.com/r/nipreps/fmriprep)
+* qsiprep from [pennbbl](https://hub.docker.com/r/pennbbl/qsiprep)
 
