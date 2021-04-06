@@ -1,9 +1,8 @@
 #!/bin/bash -e
 
-modality=""
-whichVersion=""
-fsDir=/appl/freesurfer-7.1.1
 cleanup=1
+fsDir="/appl/freesurfer-7.1.1"
+templateflowHome="/project/ftdc_pipeline/templateflow"
 
 function usage() {
   echo "Usage:
@@ -59,6 +58,11 @@ Options:
 
   -h
      Prints this help message.
+
+  -t /path/to/templateflow
+     Path to a local installation of templateflow (default = ${templateflowHome}).
+     The required templates must be pre-downloaded on sciget, run-time template installation will not work.
+     The default path has 'tpl-MNI152NLin2009cAsym' and 'tpl-OASIS30ANTs' downloaded.
 
 
 *** Hard-coded prep configuration ***
@@ -117,7 +121,10 @@ repoDir=${scriptDir%/bin}
 fsSubjectsDir=""
 userBindPoints=""
 
-while getopts "B:c:f:i:m:o:v:h" opt; do
+modality=""
+containerVersion=""
+
+while getopts "B:c:f:i:m:o:t:v:h" opt; do
   case $opt in
     B) userBindPoints=$OPTARG;;
     c) cleanup=$OPTARG;;
@@ -126,15 +133,23 @@ while getopts "B:c:f:i:m:o:v:h" opt; do
     i) bidsDir=$OPTARG;;
     m) modality=$OPTARG;;
     o) outputDir=$OPTARG;;
+    t) templateflowHome=$OPTARG;;
     v) containerVersion=$OPTARG;;
     \?) echo "Unknown option $OPTARG"; exit 2;;
     :) echo "Option $OPTARG requires an argument"; exit 2;;
   esac
 done
 
+shift $((OPTIND-1))
+
 whichPrep="${modality}prep"
 
-shift $((OPTIND-1))
+image="${repoDir}/containers/${whichPrep}-${containerVersion}.sif"
+
+if [[ ! -f $image ]]; then
+  echo "Cannot find requested container $image"
+  exit 1
+fi
 
 if [[ -z "${LSB_JOBID}" ]]; then
   echo "This script must be run within a (batch or interactive) LSF job"
@@ -167,13 +182,18 @@ jobTmpDir=$( mktemp -d -p ${SINGULARITY_TMPDIR} ${whichPrep}.${LSB_JOBID}.XXXXXX
 # We will make a temp dir there and bind to /tmp in the container
 export SINGULARITYENV_TMPDIR="/tmp"
 
-# This tells preps to look for templateflow here
+# This tells preps to look for templateflow here inside the container
 export SINGULARITYENV_TEMPLATEFLOW_HOME=/opt/templateflow
+
+if [[ ! -d "${templateflowHome}" ]]; then
+  echo "Could not find templateflow at ${templateflowHome}"
+  exit 1
+fi
 
 # singularity args
 singularityArgs="--cleanenv \
   -B ${jobTmpDir}:/tmp \
-  -B /project/ftdc_pipeline/templateflow:${SINGULARITYENV_TEMPLATEFLOW_HOME} \
+  -B ${templateflowHome}:${SINGULARITYENV_TEMPLATEFLOW_HOME} \
   -B ${fsDir}:/freesurfer \
   -B ${bidsDir}:/data/input \
   -B ${outputDir}:/data/output"
@@ -207,13 +227,6 @@ echo "
 $*
 ---
 "
-
-image="${repoDir}/containers/${whichPrep}-${containerVersion}.sif"
-
-if [[ ! -f $image ]]; then
-  echo "Cannot find requested container $image"
-  exit 1
-fi
 
 echo "
 --- Script options ---
