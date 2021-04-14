@@ -7,7 +7,7 @@ templateflowHome="/project/ftdc_pipeline/templateflow"
 function usage() {
   echo "Usage:
   $0 [-h] [-B src:dest,...,src:dest] [-c 1/0] [-f /path/to/fsSubjectsDir] \\
-    -p whichPrep -v prepVersion -i /path/to/bids -o /path/to/outputDir -- [prep args]
+    -m modality -v prepVersion -i /path/to/bids -o /path/to/outputDir -- [prep args]
 "
 }
 
