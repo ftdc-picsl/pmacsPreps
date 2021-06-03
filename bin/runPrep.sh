@@ -4,6 +4,11 @@ cleanup=1
 fsDir="/appl/freesurfer-7.1.1"
 templateflowHome="/project/ftdc_pipeline/templateflow"
 
+scriptPath=$(readlink -f "$0")
+scriptDir=$(dirname "${scriptPath}")
+# Repo base dir under which we find bin/ and containers/
+repoDir=${scriptDir%/bin}
+
 function usage() {
   echo "Usage:
   $0 [-h] [-B src:dest,...,src:dest] [-c 1/0] [-f /path/to/fsSubjectsDir] \\
@@ -13,7 +18,8 @@ function usage() {
 
 function help() {
     usage
-  echo "This script handles various configuration options and bind points needed to run preps on the cluster.
+  echo "This script handles various configuration options and bind points needed to run containerized preps
+on the cluster. Requires singularity (module load DEV/singularity).
 
 Use absolute paths, as these have to be mounted in the container. Participant BIDS data
 should exist under /path/to/bids.
@@ -23,6 +29,11 @@ to locations inside the container. If needed, you can add extra mount points wit
 
 prep args after the '--' should reference paths within the container. For example, if
 you want to use '--config-file FILE', FILE should be a path inside the container.
+
+Currently installed preps:
+
+`ls -1 ${repoDir}/containers | grep ".sif"`
+
 
 Required args:
 
@@ -112,11 +123,6 @@ if [[ $# -eq 0 ]]; then
   usage
   exit 1
 fi
-
-scriptPath=$(readlink -f "$0")
-scriptDir=$(dirname "${scriptPath}")
-# Repo base dir under which we find bin/ and containers/
-repoDir=${scriptDir%/bin}
 
 fsSubjectsDir=""
 userBindPoints=""
