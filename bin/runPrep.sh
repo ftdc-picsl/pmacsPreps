@@ -264,11 +264,11 @@ $cmd
 ---
 "
 
-singExit=0
-( $cmd ) || singExit=$?
+($cmd)
+singExit=$?
 
-if [[ $singExit -eq 0 ]]; then
-  echo "Container exited with status 0"
+if [[ $singExit -ne 0 ]]; then
+  echo "Container exited with non-zero code $singExit"
 fi
 
 if [[ $cleanup -eq 1 ]]; then
