@@ -13,6 +13,9 @@ function usage() {
   echo "Usage:
   $0 [-h] [-B src:dest,...,src:dest] [-c 1/0] [-f /path/to/fsSubjectsDir] \\
     -m modality -v prepVersion -i /path/to/bids -o /path/to/outputDir -- [prep args]
+
+  Use the -h option to see detailed help.
+
 "
 }
 
