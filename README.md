@@ -22,7 +22,7 @@ specific scripts may be added later.
 The shared installation on
 
 ```
-/project/ftdc_pipeline/pmacsPreps
+/project/bsc/shared/pmacsPreps
 ```
 
 contains Singularity images built directly from DockerHub images, on a Ubuntu VM.
@@ -40,8 +40,7 @@ will be available in job logs.
 
 The compute nodes cannot access the Internet, so templateflow must be installed
 locally and the desired templates must be pre-fetched. A shared installation for
-FTDC users is used by default, which contains the 'tpl-MNI152NLin2009cAsym' (for
-normalization) and 'tpl-OASIS30ANTs' (for brain extraction).
+BSC users is used by default. This can be changed with the `-t` option.
 
 
 ## Container sources
@@ -49,11 +48,12 @@ normalization) and 'tpl-OASIS30ANTs' (for brain extraction).
 Current containers installed in
 
 ```
-/project/ftdc_pipeline/pmacsPreps/containers
+/project/bsc/shared/pmacsPreps/containers
 ```
 
 include:
 
 * fmriprep from [nipreps](https://hub.docker.com/r/nipreps/fmriprep)
 * qsiprep from [pennbbl](https://hub.docker.com/r/pennbbl/qsiprep)
+* aslprep from [pennlinc](https://hub.docker.com/r/pennlinc/aslprep)
 
