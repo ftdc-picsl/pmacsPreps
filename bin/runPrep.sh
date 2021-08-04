@@ -85,7 +85,6 @@ Options:
      If your data is not organized this way, you can create your own mount points (-B) and then pass
      `--fs-subjects-dir` to the prep yourself.
 
-
   -h
      Prints this help message.
 
@@ -107,22 +106,31 @@ The DEV/singularity module sets the singularity temp dir to be on /scratch. To a
 the script makes a temp dir specifically for this prep job under /scratch. By default it is removed after
 the prep finishes, but this can be disabled with '-c 0'.
 
-The total number of threads and number of threads per process is set to \$LSB_DJOB_NUMPROC, which is the number
-of slots requeested with the -n argument to bsub.
+The singularity command includes '--no-home', which avoids mounting the user home directory. This prevents caching
+or config files in the user home directory from conflicting with those inside the container.
 
 The actual call to the prep is equivalent to
 
 <aprep> \\
   --fs-license-file /freesurfer/license.txt \\
   --notrack \\
-  --nthreads \$LSB_DJOB_NUMPROC \\
-  --omp-nthreads \$LSB_DJOB_NUMPROC \\
+  --nthreads numProcs \\
+  --omp-nthreads numOMPThreads \\
   --work-dir [job temp dir on /scratch] \\
   --skip_bids_validation \\
   --stop-on-first-crash \\
   --verbose \\
   [your args] \\
   /data/input /data/output participant
+
+
+*** Multi-threading ***
+
+The number of available cores (numProcs) is derived from the environment variable \${LSB_DJOB_NUMPROC},
+which is the number of slots reserved in the call to bsub. If numProcs > 1, we pass to the prep
+'--nthreads numProcs --omp-nthreads (numProcs - 1)'. If numProcs is 1, then omp-nthreads is also set to 1.
+
+The performance gains of multi-threading fall off sharply with numProcs > 9.
 
 
 *** Additional prep args ***
@@ -217,17 +225,25 @@ fi
 
 # singularity args
 singularityArgs="--cleanenv \
+  --no-home \
   -B ${jobTmpDir}:/tmp \
   -B ${templateflowHome}:${SINGULARITYENV_TEMPLATEFLOW_HOME} \
   -B ${fsDir}:/freesurfer \
   -B ${bidsDir}:/data/input \
   -B ${outputDir}:/data/output"
 
+numProcs=$LSB_DJOB_NUMPROC
+numOMPThreads=1
+
+if [[ ${numProcs} -gt 1 ]]; then
+    numOMPThreads=$((numProcs - 1))
+fi
+
 # Script-defined args to the prep
 prepScriptArgs="--fs-license-file /freesurfer/license.txt \
   --notrack \
-  --nthreads $LSB_DJOB_NUMPROC \
-  --omp-nthreads $LSB_DJOB_NUMPROC \
+  --nthreads $numProcs \
+  --omp-nthreads $numOMPThreads \
   --work-dir ${SINGULARITYENV_TMPDIR} \
   --skip_bids_validation \
   --stop-on-first-crash \
@@ -261,6 +277,8 @@ Output directory       : $outputDir
 Cleanup temp           : $cleanup
 User bind points       : $userBindPoints
 FreeSurfer subject dir : $fsSubjectsDir
+Number of cores        : $numProcs
+OMP threads            : $numOMPThreads
 ---
 "
 
