@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 cleanup=1
 fsDir="/appl/freesurfer-7.1.1"
@@ -68,7 +68,21 @@ Options:
 
   -f /path/to/fsSubjectsDir
      Base directory of FreeSurfer recon-all output, on the local file system. Will be mounted inside the
-     container and passed to the prep with the '--fs-subjects-dir' option.
+     container and passed to the prep with the '--fs-subjects-dir' option. This only works if you have FS data
+     organized in a BIDS-like way. The preps will look for:
+       <fs-subjects-dir>/
+                        fsaverage{,5,6}/
+                        mri/
+                        surf/
+                        ...
+                        sub-<participant>/
+                        mri/
+                        surf/
+                        ...
+
+    If your data is not organized this way, you can create your own mount points (-B) and then pass
+    `--fs-subjects-dir` to the prep yourself.
+
 
   -h
      Prints this help message.
@@ -267,7 +281,7 @@ $cmd
 ---
 "
 
-($cmd)
+$cmd
 singExit=$?
 
 if [[ $singExit -ne 0 ]]; then
