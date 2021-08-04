@@ -80,6 +80,8 @@ Options:
                         surf/
                         ...
 
+     fsaverage needs to be an actual copy of the fsaverage data, not a symbolic link.
+
      If your data is not organized this way, you can create your own mount points (-B) and then pass
      `--fs-subjects-dir` to the prep yourself.
 
