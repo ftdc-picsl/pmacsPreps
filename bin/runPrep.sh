@@ -72,13 +72,13 @@ Options:
      organized in a BIDS-like way. The preps will look for:
        <fs-subjects-dir>/
                         fsaverage{,5,6}/
-                        mri/
-                        surf/
-                        ...
+                                       mri/
+                                       surf/
+                                       ...
                         sub-<participant>/
-                        mri/
-                        surf/
-                        ...
+                                         mri/
+                                         surf/
+                                         ...
 
      fsaverage needs to be an actual copy of the fsaverage data, not a symbolic link.
 
