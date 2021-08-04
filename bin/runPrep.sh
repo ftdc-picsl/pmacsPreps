@@ -2,7 +2,7 @@
 
 cleanup=1
 fsDir="/appl/freesurfer-7.1.1"
-templateflowHome="/project/ftdc_pipeline/templateflow"
+templateflowHome="/project/bsc/shared/templateflow"
 
 scriptPath=$(readlink -f "$0")
 scriptDir=$(dirname "${scriptPath}")
@@ -99,7 +99,8 @@ Options:
 
 A shared templateflow path is passed to the container via the environment variable TEMPLATEFLOW_HOME.
 
-The FreeSurfer license file is sourced from ${fsDir} .
+The FreeSurfer license file is sourced from ${fsDir} . If you are running in an environment with FIPS mode enabled,
+ask the cluster admins how to deal with the license problem.
 
 BIDS validation is skipped because the prep validators are too strict.
 
