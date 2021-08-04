@@ -125,13 +125,17 @@ The actual call to the prep is equivalent to
   /data/input /data/output participant
 
 
-*** Multi-threading ***
+*** Multi-threading and memory use ***
 
 The number of available cores (numProcs) is derived from the environment variable \${LSB_DJOB_NUMPROC},
 which is the number of slots reserved in the call to bsub. If numProcs > 1, we pass to the prep
 '--nthreads numProcs --omp-nthreads (numProcs - 1)'. If numProcs is 1, then omp-nthreads is also set to 1.
 
 The performance gains of multi-threading fall off sharply with numProcs > 9.
+
+Memory use is not controlled by this script, as it is not simple to parse from the job environment. The
+maximum memory (in Mb) used by the preps can be controlled with '--mem-mb'. The amount of memory required will
+depend on the size of the input data, the processing options selected, and the number of threads used.
 
 
 *** Additional prep args ***
