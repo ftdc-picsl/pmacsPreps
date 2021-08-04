@@ -80,8 +80,8 @@ Options:
                         surf/
                         ...
 
-    If your data is not organized this way, you can create your own mount points (-B) and then pass
-    `--fs-subjects-dir` to the prep yourself.
+     If your data is not organized this way, you can create your own mount points (-B) and then pass
+     `--fs-subjects-dir` to the prep yourself.
 
 
   -h
