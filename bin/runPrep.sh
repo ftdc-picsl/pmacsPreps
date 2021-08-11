@@ -201,7 +201,7 @@ if [[ ! -d "$bidsDir" ]]; then
   exit 1
 fi
 
-if [[ ! -d "${outputDir}" ]]; then
+if [[ ! -d "$outputDir" ]]; then
   mkdir -p "$outputDir"
 fi
 
@@ -211,8 +211,17 @@ if [[ ! -d "${outputDir}" ]]; then
 fi
 
 # Set a job-specific temp dir
-jobTmpDir=$( mktemp -d -p ${SINGULARITY_TMPDIR} ${whichPrep}.${LSB_JOBID}.XXXXXXXX.tmpdir ) ||
-    ( echo "Could not create job temp dir ${jobTmpDir}"; exit 1 )
+if [[ ! -d "$SINGULARITY_TMPDIR" ]]; then
+  "Setting SINGULARITY_TMPDIR=/scratch"
+  export SINGULARITY_TMPDIR=/scratch 
+fi
+
+jobTmpDir=$( mktemp -d -p ${SINGULARITY_TMPDIR} ${whichPrep}.${LSB_JOBID}.XXXXXXXX.tmpdir )
+
+if [[ ! -d "$jobTmpDir" ]]; then
+  echo "Could not create job temp dir ${jobTmpDir}"
+  exit 1
+fi
 
 # Not all software uses TMPDIR
 # module DEV/singularity sets SINGULARITYENV_TMPDIR=/scratch
