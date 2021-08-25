@@ -33,6 +33,13 @@ to locations inside the container. If needed, you can add extra mount points wit
 prep args after the '--' should reference paths within the container. For example, if
 you want to use '--config-file FILE', FILE should be a path inside the container.
 
+** Experimental feature ***
+
+This version also sets the umask, which requires a custom singularity run script. It will be fixed when
+system Singularity is updated to 3.7.
+
+***
+
 Currently installed preps:
 
 `ls -1 ${repoDir}/containers | grep ".sif"`
@@ -301,20 +308,22 @@ singularity inspect $image
 echo "---
 "
 
-cmd="singularity run \
+userUmask=`umask`
+
+cmd=(singularity exec \
   $singularityArgs \
   $image \
-  /data/input /data/output participant \
-  $prepScriptArgs \
-  $prepUserArgs"
+  bash -c \
+  "umask $userUmask ; /usr/local/miniconda/bin/${whichPrep} /data/input /data/output participant \
+  $prepScriptArgs $prepUserArgs")
 
 echo "
 --- prep command ---
-$cmd
+${cmd[@]}
 ---
 "
 
-$cmd
+"${cmd[@]}"
 singExit=$?
 
 if [[ $singExit -ne 0 ]]; then
