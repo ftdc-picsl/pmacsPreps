@@ -212,7 +212,7 @@ fi
 
 # Set a job-specific temp dir
 if [[ ! -d "$SINGULARITY_TMPDIR" ]]; then
-  "Setting SINGULARITY_TMPDIR=/scratch"
+  echo "Setting SINGULARITY_TMPDIR=/scratch"
   export SINGULARITY_TMPDIR=/scratch 
 fi
 
