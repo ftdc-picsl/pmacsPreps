@@ -1,6 +1,8 @@
 #!/bin/bash
 
-cleanup=1
+module load singularity/3.8.3
+
+cleanupTmp=1
 fsDir="/appl/freesurfer-7.1.1"
 templateflowHome="/project/ftdc_pipeline/templateflow"
 
@@ -63,7 +65,7 @@ Options:
      output dirs (-f) are bound automatically.
 
   -c 1/0
-     Cleanup the working dir after running the prep (default = $cleanup). This is different from the prep
+     Cleanup the working dir after running the prep (default = $cleanupTmp). This is different from the prep
      option '--clean-workdir', which deletes the contents of the working directory BEFORE running anything.
 
   -f /path/to/fsSubjectsDir
@@ -102,7 +104,7 @@ The FreeSurfer license file is sourced from ${fsDir} .
 
 BIDS validation is skipped because the prep validators are too strict.
 
-The DEV/singularity module sets the singularity temp dir to be on /scratch. To avoid conflicts with other jobs,
+The singularity module sets the singularity temp dir to be on /scratch. To avoid conflicts with other jobs,
 the script makes a temp dir specifically for this prep job under /scratch. By default it is removed after
 the prep finishes, but this can be disabled with '-c 0'.
 
@@ -117,20 +119,22 @@ The actual call to the prep is equivalent to
   --nthreads numProcs \\
   --omp-nthreads numOMPThreads \\
   --work-dir [job temp dir on /scratch] \\
-  --skip_bids_validation \\
   --stop-on-first-crash \\
   --verbose \\
-  [your args] \\
+  [prep args] \\
   /data/input /data/output participant
 
+where [prep args] are anything following `--` in the call to this script.
 
 *** Multi-threading and memory use ***
 
 The number of available cores (numProcs) is derived from the environment variable \${LSB_DJOB_NUMPROC},
 which is the number of slots reserved in the call to bsub. If numProcs > 1, we pass to the prep
-'--nthreads numProcs --omp-nthreads (numProcs - 1)'. If numProcs is 1, then omp-nthreads is also set to 1.
+'--nthreads numProcs --omp-nthreads numProcs'. Individual workflows may differ in performance. This default
+may be overriden by passing the two options above as an argument to the prep container
 
-The performance gains of multi-threading fall off sharply with numProcs > 9.
+The performance gains of multi-threading fall off sharply with omp-nthreads > 8. In some contexts, it may be possible
+to run jobs in parallel, eg with '--nthreads 16 --omp-nthreads 8'.
 
 Memory use is not controlled by this script, as it is not simple to parse from the job environment. The
 maximum memory (in Mb) used by the preps can be controlled with '--mem-mb'. The amount of memory required will
@@ -164,7 +168,7 @@ containerVersion=""
 while getopts "B:c:f:i:m:o:t:v:h" opt; do
   case $opt in
     B) userBindPoints=$OPTARG;;
-    c) cleanup=$OPTARG;;
+    c) cleanupTmp=$OPTARG;;
     f) fsSubjectsDir=$OPTARG;;
     h) help; exit 1;;
     i) bidsDir=$OPTARG;;
@@ -213,7 +217,7 @@ fi
 # Set a job-specific temp dir
 if [[ ! -d "$SINGULARITY_TMPDIR" ]]; then
   echo "Setting SINGULARITY_TMPDIR=/scratch"
-  export SINGULARITY_TMPDIR=/scratch 
+  export SINGULARITY_TMPDIR=/scratch
 fi
 
 jobTmpDir=$( mktemp -d -p ${SINGULARITY_TMPDIR} ${whichPrep}.${LSB_JOBID}.XXXXXXXX.tmpdir )
@@ -246,11 +250,7 @@ singularityArgs="--cleanenv \
   -B ${outputDir}:/data/output"
 
 numProcs=$LSB_DJOB_NUMPROC
-numOMPThreads=1
-
-if [[ ${numProcs} -gt 1 ]]; then
-    numOMPThreads=$((numProcs - 1))
-fi
+numOMPThreads=$LSB_DJOB_NUMPROC
 
 # Script-defined args to the prep
 prepScriptArgs="--fs-license-file /freesurfer/license.txt \
@@ -258,7 +258,6 @@ prepScriptArgs="--fs-license-file /freesurfer/license.txt \
   --nthreads $numProcs \
   --omp-nthreads $numOMPThreads \
   --work-dir ${SINGULARITYENV_TMPDIR} \
-  --skip_bids_validation \
   --stop-on-first-crash \
   --verbose"
 
@@ -287,7 +286,7 @@ echo "
 prep image             : $image
 BIDS directory         : $bidsDir
 Output directory       : $outputDir
-Cleanup temp           : $cleanup
+Cleanup temp           : $cleanupTmp
 User bind points       : $userBindPoints
 FreeSurfer subject dir : $fsSubjectsDir
 Number of cores        : $numProcs
@@ -314,6 +313,39 @@ $cmd
 ---
 "
 
+# function to clean up tmp and report errors at exit
+function cleanup {
+  EXIT_CODE=$?
+  LAST_CMD=${BASH_COMMAND}
+  set +e # disable termination on error
+
+  if [[ $cleanupTmp -gt 0 ]]; then
+    echo "Removing temp dir ${jobTmpDir}"
+    rm -rf ${jobTmpDir}
+  else
+    echo "Leaving working directory ${jobTmpDir}"
+  fi
+
+  if [[ ${EXIT_CODE} -gt 0 ]]; then
+    echo "
+  $0 EXITED ON ERROR - PROCESSING MAY BE INCOMPLETE"
+    echo "
+  The command \"${LAST_CMD}\" exited with code ${EXIT_CODE}
+"
+  fi
+
+  exit $EXIT_CODE
+}
+
+trap cleanup EXIT
+
+# Exits, triggering cleanup, on CTRL+C
+function sigintCleanup {
+   exit $?
+}
+
+trap sigintCleanup SIGINT
+
 $cmd
 singExit=$?
 
@@ -321,7 +353,7 @@ if [[ $singExit -ne 0 ]]; then
   echo "Container exited with non-zero code $singExit"
 fi
 
-if [[ $cleanup -eq 1 ]]; then
+if [[ $cleanupTmp -eq 1 ]]; then
   echo "Removing temp dir ${jobTmpDir}"
   rm -rf ${jobTmpDir}
 else
