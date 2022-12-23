@@ -13,7 +13,7 @@ repoDir=${scriptDir%/bin}
 
 function usage() {
   echo "Usage:
-  $0 [-h] [-B src:dest,...,src:dest] [-c 1/0] [-f /path/to/fsSubjectsDir] \\
+  $0 [-h] [-B src:dest,...,src:dest] [-c 1/0] [-e VAR=value] [-f /path/to/fsSubjectsDir] \\
     -m modality -v prepVersion -i /path/to/bids -o /path/to/outputDir -- [prep args]
 
   Use the -h option to see detailed help.
@@ -67,6 +67,9 @@ Options:
   -c 1/0
      Cleanup the working dir after running the prep (default = $cleanupTmp). This is different from the prep
      option '--clean-workdir', which deletes the contents of the working directory BEFORE running anything.
+
+  -e VAR=value[,VAR=value,...,VAR=value]
+     Comma-separated list of environment variables to pass to singularity.
 
   -f /path/to/fsSubjectsDir
      Base directory of FreeSurfer recon-all output, on the local file system. Will be mounted inside the
@@ -165,10 +168,13 @@ userBindPoints=""
 modality=""
 containerVersion=""
 
-while getopts "B:c:f:i:m:o:t:v:h" opt; do
+singularityEvars=""
+
+while getopts "B:c:e:f:i:m:o:t:v:h" opt; do
   case $opt in
     B) userBindPoints=$OPTARG;;
     c) cleanupTmp=$OPTARG;;
+    e) singularityEvars=$OPTARG;;
     f) fsSubjectsDir=$OPTARG;;
     h) help; exit 1;;
     i) bidsDir=$OPTARG;;
@@ -273,6 +279,11 @@ if [[ -n "$userBindPoints" ]]; then
   -B $userBindPoints"
 fi
 
+if [[ -n "$singularityEvars" ]]; then
+  singularityArgs="$singularityArgs \
+  --env $singularityEvars"
+fi
+
 prepUserArgs="$*"
 
 echo "
@@ -288,6 +299,7 @@ BIDS directory         : $bidsDir
 Output directory       : $outputDir
 Cleanup temp           : $cleanupTmp
 User bind points       : $userBindPoints
+User environment vars  : $singularityEvars
 FreeSurfer subject dir : $fsSubjectsDir
 Number of cores        : $numProcs
 OMP threads            : $numOMPThreads
