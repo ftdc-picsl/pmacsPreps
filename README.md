@@ -6,15 +6,15 @@
 The executable scripts are stored in `bin/`, eg
 
 ```
-bin/runprep.sh [args]
+bin/runprep.sh -m modality -v version [args]
 ```
 
-runs a container of the form `containers/modalityprep-version.sif`.
+runs a container at the path `containers/modalityprep-version.sif`.
 
-The containers are not included in this repository.
+The containers are not included in this repository because they are too large.
 
-The generic script `runprep.sh` is designed to run any prep; more specialized,
-specific scripts may be added later.
+The generic script `runprep.sh` is designed to run any prep, and has been tested on [qsi
+,fmri, asl]prep.
 
 
 ## Container information
@@ -25,8 +25,8 @@ The shared installation on
 /project/ftdc_pipeline/pmacsPreps
 ```
 
-contains Singularity images built directly from DockerHub images, on a Ubuntu VM.
-Details can be found by running
+contains Singularity images built directly from DockerHub images, on a Ubuntu VM , or on
+`singularity01`. Details can be found by running
 
 ```
 singularity inspect containers/container-version.sif
