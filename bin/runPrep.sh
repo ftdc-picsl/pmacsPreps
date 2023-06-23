@@ -105,7 +105,7 @@ A shared templateflow path is passed to the container via the environment variab
 
 The FreeSurfer license file is sourced from ${fsDir} .
 
-BIDS validation is skipped because the prep validators are too strict.
+BIDS validation is performed by default, skip by passing '--skip-bids-validation' in the prep args.
 
 The singularity module sets the singularity temp dir to be on /scratch. To avoid conflicts with other jobs,
 the script makes a temp dir specifically for this prep job under /scratch. By default it is removed after
@@ -133,8 +133,11 @@ where [prep args] are anything following `--` in the call to this script.
 
 The number of available cores (numProcs) is derived from the environment variable \${LSB_DJOB_NUMPROC},
 which is the number of slots reserved in the call to bsub. If numProcs > 1, we pass to the prep
-'--nthreads numProcs --omp-nthreads numProcs'. Individual workflows may differ in performance. This default
-may be overriden by passing the two options above as an argument to the prep container
+'--nthreads numProcs --omp-nthreads numProcs'. This default may be overriden by passing the two options above as prep args.
+
+Individual workflows may differ in performance, some may benefit from '--nthreads numProcs --omp-nthreads (numProcs - 1)',
+enabling one core to run another task in parallel while a multi-threaded process uses the rest. However, in practice the
+most efficient method relies upon numProcs, the host environment, and the total number of processors and jobs.
 
 The performance gains of multi-threading fall off sharply with omp-nthreads > 8. In some contexts, it may be possible
 to run jobs in parallel, eg with '--nthreads 16 --omp-nthreads 8'.
