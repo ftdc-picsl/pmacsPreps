@@ -254,8 +254,8 @@ singularityArgs="--cleanenv \
   --no-home \
   -B ${jobTmpDir}:/tmp \
   -B ${templateflowHome}:${SINGULARITYENV_TEMPLATEFLOW_HOME} \
-  -B ${fsDir}:/freesurfer \
-  -B ${bidsDir}:/data/input \
+  -B ${fsDir}/license.txt:/freesurfer/license.txt:ro \
+  -B ${bidsDir}:/data/input:ro \
   -B ${outputDir}:/data/output"
 
 numProcs=$LSB_DJOB_NUMPROC
