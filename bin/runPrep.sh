@@ -4,6 +4,7 @@ module load singularity/3.8.3
 
 cleanupTmp=1
 fsDir="/appl/freesurfer-7.1.1"
+useGPU=0
 templateflowHome="/project/ftdc_pipeline/templateflow"
 
 scriptPath=$(readlink -f "$0")
@@ -90,6 +91,9 @@ Options:
      If your data is not organized this way, you can create your own mount points (-B) and then pass
      `--fs-subjects-dir` to the prep yourself.
 
+  -g 1/0
+     Run containers with CUDA GPU support (default = $useGPU).
+
   -h
      Prints this help message.
 
@@ -173,12 +177,13 @@ containerVersion=""
 
 singularityEvars=""
 
-while getopts "B:c:e:f:i:m:o:t:v:h" opt; do
+while getopts "B:c:e:f:g:i:m:o:t:v:h" opt; do
   case $opt in
     B) userBindPoints=$OPTARG;;
     c) cleanupTmp=$OPTARG;;
     e) singularityEvars=$OPTARG;;
     f) fsSubjectsDir=$OPTARG;;
+    g) useGPU=$OPTARG;;
     h) help; exit 1;;
     i) bidsDir=$OPTARG;;
     m) modality=$OPTARG;;
@@ -270,6 +275,11 @@ prepScriptArgs="--fs-license-file /freesurfer/license.txt \
   --stop-on-first-crash \
   --verbose"
 
+if [[ $useGPU -gt 0 ]]; then
+    singularityArgs="$singularityArgs \
+    --nv"
+fi
+
 if [[ -n "$fsSubjectsDir" ]]; then
   singularityArgs="$singularityArgs \
   -B ${fsSubjectsDir}:/data/fs_subjects"
@@ -306,6 +316,7 @@ User environment vars  : $singularityEvars
 FreeSurfer subject dir : $fsSubjectsDir
 Number of cores        : $numProcs
 OMP threads            : $numOMPThreads
+Use GPU                : $useGPU
 ---
 "
 
