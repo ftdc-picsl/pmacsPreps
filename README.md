@@ -17,6 +17,25 @@ The generic script `runprep.sh` is designed to run any prep, and has been tested
 ,fmri, asl]prep.
 
 
+## Cluster usage
+
+The script detects the number of slots requested with `bsub -n`, and will set multi-threading parameters accordingly. It does not look for memory resource requests, which are much harder to extract from the environment. 
+
+The preps accept the arg `--mem_mb <number>` which help with subprocess scheduling, but memory usage can sometimes exceed this value. Submission scripts can add a hard memory limit with `-M` and make resource requests with `-R "rusage[mem=<number>]"`. For example
+
+```
+# Hard limit above which job is terminated immediately
+MEM_LIMIT_GB=16
+# Memory we think we need, scheduler will wait for this
+# much memory to be available before running job
+MEM_REQUEST_GB=8
+
+MEM_LIMIT_MB=$((MEM_LIMIT_GB*1024))
+MEM_REQUEST_MB=$((MEM_REQUEST_GB*1024))
+
+bsub -M ${MEM_LIMIT_MB} -R "rusage[mem=${MEM_REQUEST_MB}]" ... bin/runPrep.sh ... -- --mem_mb ${MEM_REQUEST_MB}
+```
+
 ## Container information
 
 The shared installation on
