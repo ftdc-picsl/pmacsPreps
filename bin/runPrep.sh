@@ -65,9 +65,12 @@ Options:
      executed from), and /tmp (more on this below). Additionally, BIDS input (-i), output (-o), and FreeSurfer
      output dirs (-f) are bound automatically.
 
-  -c 1/0
+  -c 1/0 | /path/to/save/tmpdir
      Cleanup the working dir after running the prep (default = $cleanupTmp). This is different from the prep
      option '--clean-workdir', which deletes the contents of the working directory BEFORE running anything.
+
+     If the argument is a path, the working dir will be copied there. This should be a path on the local file
+     system.
 
   -e VAR=value[,VAR=value,...,VAR=value]
      Comma-separated list of environment variables to pass to singularity.
@@ -382,8 +385,18 @@ fi
 if [[ $cleanupTmp -eq 1 ]]; then
   echo "Removing temp dir ${jobTmpDir}"
   rm -rf ${jobTmpDir}
+elif [[ "$cleanupTmp" =~ ^/ ]]; then
+  echo "Copying temp dir ${jobTmpDir} to ${cleanupTmp}"
+  mkdir -p $(dirname ${cleanupTmp})
+  cp -r ${jobTmpDir} ${cleanupTmp}
 else
   echo "Leaving temp dir ${jobTmpDir}"
+fi
+
+if [[ ${modality} == "qsi" ]]; then
+  # qsiprep plotting code leaves processes running, so we have to kill the job
+  echo "Exiting by killing job ${LSB_JOBID}"
+  bkill $LSB_JOBID
 fi
 
 exit $singExit
