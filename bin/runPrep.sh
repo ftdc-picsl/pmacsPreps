@@ -69,8 +69,8 @@ Options:
      Cleanup the working dir after running the prep (default = $cleanupTmp). This is different from the prep
      option '--clean-workdir', which deletes the contents of the working directory BEFORE running anything.
 
-     If the argument is a path, the working dir will be copied there. This is useful for debugging, or if you
-     need to keep the working dir for some reason.
+     If the argument is a path, the working dir will be copied there. This should be a path on the local file
+     system.
 
   -e VAR=value[,VAR=value,...,VAR=value]
      Comma-separated list of environment variables to pass to singularity.
