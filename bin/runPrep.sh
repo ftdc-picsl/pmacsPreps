@@ -2,7 +2,8 @@
 
 module load singularity/3.8.3
 
-cleanupTmp=1
+bkillJob=0
+cleanupTmp="1" # can be a path
 fsDir="/appl/freesurfer-7.1.1"
 useGPU=0
 templateflowHome="/project/ftdc_pipeline/templateflow"
@@ -100,6 +101,10 @@ Options:
   -h
      Prints this help message.
 
+  -k 0/1
+     Kill the job in which this script runs after the container exits. This is useful for qsiprep, which sometimes leaves
+     processes running after the container exits (default = $bkillJob).
+
   -t /path/to/templateflow
      Path to a local installation of templateflow (default = ${templateflowHome}).
      The required templates must be pre-downloaded on sciget, run-time template installation will not work.
@@ -180,7 +185,7 @@ containerVersion=""
 
 singularityEvars=""
 
-while getopts "B:c:e:f:g:i:m:o:t:v:h" opt; do
+while getopts "B:c:e:f:g:i:k:m:o:t:v:h" opt; do
   case $opt in
     B) userBindPoints=$OPTARG;;
     c) cleanupTmp=$OPTARG;;
@@ -189,6 +194,7 @@ while getopts "B:c:e:f:g:i:m:o:t:v:h" opt; do
     g) useGPU=$OPTARG;;
     h) help; exit 1;;
     i) bidsDir=$OPTARG;;
+    k) bkillJob=$OPTARG;;
     m) modality=$OPTARG;;
     o) outputDir=$OPTARG;;
     t) templateflowHome=$OPTARG;;
@@ -348,7 +354,12 @@ function cleanup {
   LAST_CMD=${BASH_COMMAND}
   set +e # disable termination on error
 
-  if [[ $cleanupTmp -gt 0 ]]; then
+  if [[ "$cleanupTmp" =~ ^/ ]]; then
+    echo "Copying temp dir ${jobTmpDir} to ${cleanupTmp}"
+    mkdir -p $(dirname ${cleanupTmp})
+    cp -r ${jobTmpDir} ${cleanupTmp}
+    rm -rf ${jobTmpDir}
+  elif [[ "$cleanupTmp" == "1" ]]; then
     echo "Removing temp dir ${jobTmpDir}"
     rm -rf ${jobTmpDir}
   else
@@ -382,18 +393,7 @@ if [[ $singExit -ne 0 ]]; then
   echo "Container exited with non-zero code $singExit"
 fi
 
-if [[ $cleanupTmp -eq 1 ]]; then
-  echo "Removing temp dir ${jobTmpDir}"
-  rm -rf ${jobTmpDir}
-elif [[ "$cleanupTmp" =~ ^/ ]]; then
-  echo "Copying temp dir ${jobTmpDir} to ${cleanupTmp}"
-  mkdir -p $(dirname ${cleanupTmp})
-  cp -r ${jobTmpDir} ${cleanupTmp}
-else
-  echo "Leaving temp dir ${jobTmpDir}"
-fi
-
-if [[ ${modality} == "qsi" ]]; then
+if [[ $bkillJob -eq 1 ]]; then
   # qsiprep plotting code leaves processes running, so we have to kill the job
   echo "Exiting by killing job ${LSB_JOBID}"
   bkill $LSB_JOBID
